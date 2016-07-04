@@ -1,130 +1,109 @@
 /**
- * Created by raghav on 3/7/16.
+ * Created by raghav on 4/7/16.
  */
 
 var app = require('express')();
+
 var http = require('http').Server(app);
+
 var io = require('socket.io')(http);
+
 var path = require('path');
+
 var sget = require('sget');
 
-var colorOptions = [
-    "#ff0000", "#e50000", "#d90000", "#330000", "#b26559", "#401d10", "#a65b29", "#ff8800",
-    "#f2ba79", "#f2c200", "#7f6600", "#e6daac", "#403d30", "#403c00", "#eeff00", "#7d8060",
-    "#7ca629", "#00ff22", "#33cc5c", "#1a6642", "#66cc9c", "#0d3330", "#00becc", "#00334d",
-    "#566973", "#307cbf", "#bfe1ff", "#00258c", "#8091ff", "#2000f2", "#0a004d", "#464359",
-    "#cbace6", "#cc00be", "#330d2b", "#8c467e", "#f20061", "#ff80b3", "#990029", "#733949",
-    "#f2b6be"
-];
+var playerSessions = {
+    count: 0,
+    sessions: {},
+    colorOptions: [
+        "#ff0000", "#e50000", "#d90000", "#330000", "#b26559", "#401d10", "#a65b29", "#ff8800",
+        "#f2ba79", "#f2c200", "#7f6600", "#e6daac", "#403d30", "#403c00", "#eeff00", "#7d8060",
+        "#7ca629", "#00ff22", "#33cc5c", "#1a6642", "#66cc9c", "#0d3330", "#00becc", "#00334d",
+        "#566973", "#307cbf", "#bfe1ff", "#00258c", "#8091ff", "#2000f2", "#0a004d", "#464359",
+        "#cbace6", "#cc00be", "#330d2b", "#8c467e", "#f20061", "#ff80b3", "#990029", "#733949",
+        "#f2b6be"
+    ],
+    gameState: {
+        cells: [],
+        status: 0,
+        colors: {}
+    },
+    gameConfig: {
+        boardSize: null,
+        maxNumberOfPlayers: null,
+        blockingTime: null
+    },
+    cellsBlocked: 0
+};
+
+playerSessions.gameConfig.boardSize = sget('Boardsize ? [Min : 4 & Max : 12] : ');
+
+while (playerSessions.gameConfig.boardSize < 4 || playerSessions.gameConfig.boardSize > 12) {
+    console.log('Invalid Board Size!! Try again...');
+    playerSessions.gameConfig.boardSize = sget('Boardsize ? [Min : 4 & Max : 12] : ');
+}
+
+for (var i = 0; i < playerSessions.gameConfig.boardSize; i++) {
+    playerSessions.gameState.cells[i] = {};
+    for (var j = 0; j < playerSessions.gameConfig.boardSize; j++) {
+        playerSessions.gameState.cells[i][j] = {
+            'fill': 'white',
+            'occupiedBy': null
+        };
+    }
+}
+
+playerSessions.gameConfig.maxNumberOfPlayers = sget('Max. No. of Players allowed ? [between 2 & 8] : ');
+
+while (playerSessions.gameConfig.maxNumberOfPlayers < 2 || playerSessions.gameConfig.maxNumberOfPlayers > 8) {
+    console.log('Invalid No. of players!! Try again...');
+    playerSessions.gameConfig.maxNumberOfPlayers = sget('Max. No. of Players allowed ? [between 2 & 8] : ');
+}
+
+playerSessions.gameConfig.blockingTime = sget('Blocking Time in seconds ? [between 2 & 8] : ');
+
+while (playerSessions.gameConfig.blockingTime < 2 || playerSessions.gameConfig.blockingTime > 8) {
+    console.log('Invalid No. of players!! Try again...');
+    playerSessions.gameConfig.blockingTime = sget('Blocking Time in seconds ? [between 2 & 8] : ');
+}
 
 app.get('/', function (req, res) {
     var express = require('express');
     app.use(express.static(path.join(__dirname)));
-    res.sendFile(path.join(__dirname, '../board-game', 'game.html'));
+    res.sendFile(path.join(__dirname, '../board-game', 'board-game.html'));
 });
 
-var config = {
-    boardSize: null,
-    maxNumberOfPlayers: null,
-    blockingTime: null
-};
-
-var gameState = {
-    cells: {},
-    players: {},
-    config: {},
-    colors: {},
-    started: false
-};
-gameOn = false;
 io.on('connection', function (socket) {
-    socket.on('joinGame', function (from) {
-        if (gameState.players[encodeURI(from)] == undefined) {
-            gameState.players[encodeURI(from)] = {
-                name: from,
-                cells: []
-            };
-            var randomIndex = Math.floor(Math.random() * colorOptions.length);
-            gameState.colors[encodeURI(from)] = gameState.colors[encodeURI(from)] = colorOptions[randomIndex];
-            colorOptions.splice(randomIndex, 1);
-        }
-        var count = 0;
-        for (var player in gameState.players) {
-            count++;
-            if (count > 1) {
-                gameState.started = true;
-            }
-        }
-        if (count < 2) {
-            gameState.started = false;
-        }
-
-        io.emit('joinGame', from);
-        io.emit('updateGameState', gameState);
+    socket.on('joinGame', function (user, color) {
+        io.emit('playerJoined', user, color);
     });
 
-
-    socket.on('selectColor', function (user, x, y, color) {
-        io.emit('selectColor', user, x, y, color);
+    socket.on('playerSessions', function (sessions) {
+        playerSessions = sessions;
+        io.emit('playerSessions', sessions);
     });
 
+    socket.on('removePlayer', function (player) {
+        if (playerSessions.sessions[encodeURI(player)] != undefined) {
+            playerSessions.colorOptions.push(playerSessions.sessions[encodeURI(player)].color);
+            io.emit('removePlayer', player, playerSessions.sessions[encodeURI(player)].color)
+            delete playerSessions.sessions[encodeURI(player)];
+            playerSessions.count--;
+            io.emit('playerSessions', playerSessions);
+            console.log(player + " left the game! " + playerSessions.count + " player/s is/are still playing the game!");
+        }
+    });
 
     socket.on('blockBoard', function () {
         io.emit('blockBoard');
     });
 
-
-    socket.on('updateGameState', function (gameState) {
-        io.emit('updateGameState', gameState);
+    socket.on('finishGame', function (sessions) {
+        io.emit('playerSessions', sessions);
     });
 
-
-    socket.on('removePlayer', function (player) {
-        if (gameState.players[encodeURI(player)] != undefined) {
-            delete gameState.players[encodeURI(player)];
-            colorOptions.push(gameState.colors[encodeURI(player)]);
-            delete gameState.colors[encodeURI(player)];
-            io.emit('updateGameState', gameState);
-            console.log(player + " left the game! " + Object.keys(gameState.players).length + " player(s) is(are) still playing the game!");
-        }
-    });
-
-
-    io.emit('updateGameState', gameState);
+    io.emit('playerSessions', playerSessions);
 });
-
-config.boardSize = sget('Boardsize ? [Min : 4 & Max : 12] : ');
-
-while (config.boardSize < 4 || config.boardSize > 12) {
-    console.log('Invalid Board Size!! Try again...');
-    config.boardSize = sget('Boardsize ? [Min : 4 & Max : 12] : ');
-}
-
-config.maxNumberOfPlayers = sget('Max. No. of Players allowed ? [between 2 & 8] : ');
-
-while (config.maxNumberOfPlayers < 2 || config.maxNumberOfPlayers > 8) {
-    console.log('Invalid No. of players!! Try again...');
-    config.maxNumberOfPlayers = sget('Max. No. of Players allowed ? [between 2 & 8] : ');
-}
-
-config.blockingTime = sget('Blocking Time in seconds ? [between 2 & 8] : ');
-
-while (config.blockingTime < 2 || config.blockingTime > 8) {
-    console.log('Invalid No. of players!! Try again...');
-    config.blockingTime = sget('Blocking Time in seconds ? [between 2 & 8] : ');
-}
-gameState.config = config;
-for (var i = 0; i < config.boardSize; i++) {
-    for (var j = 0; j < config.boardSize; j++) {
-        if (gameState.cells[i] == undefined) {
-            gameState.cells[i] = {};
-        }
-        gameState.cells[i][j] = {
-            color: null,
-            occupiedBy: null
-        };
-    }
-}
 
 http.listen(3000, function () {
     console.log('listening on *:3000');

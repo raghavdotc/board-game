@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Board Game by Raghavendra</title>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <script src="jquery.blockUI.js"></script>
+    <script src="receivers.js"></script>
+    <script src="user-events.js"></script>
+</head>
+<body>
+<div id="container" class="container">
+    <div class="row" id="body">
+        <div class="col-md-9" id="game-board">
+            <h3 class="text-center">Board Game</h3>
+            <hr>
+            <div id="joiner" class="text-center row">
+                <form action="" onsubmit="return tryJoining()">
+                    <div class="col-md-offset-3 col-md-6">
+                        <label for="username">Username</label>
+                        <input type="text" name="username" id="username" class="form-control">
+                        <hr>
+                        <input type="submit" value="Join Game">
+                    </div>
+                </form>
+            </div>
+            <div id="waiter" class="text-center text-primary row hidden">
+                This game requires at least 2 players. Please wait until someone else joins!
+            </div>
+            <div id="joined" class="text-center row hidden">
+                <div class="col-md-8">
+                    <table>
+
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <h4>Scoreboard</h4>
+                    <ul id="scoreboard">
+
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <h3>Timeline</h3>
+            <ul id="timeline">
+
+            </ul>
+            <hr>
+            <h3>Chat History</h3>
+            <ul id="chat-history">
+
+            </ul>
+        </div>
+    </div>
+    <hr>
+    <div id="messenger" class="row">
+        <div class="col-md-10">
+            <input type="text" name="message" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <input type="submit" class="btn btn-success" value="Send Message">
+        </div>
+    </div>
+</div>
+
+<style>
+    #game-board {
+        height: 500px;
+        border-right: thin solid #d2d2d2;
+    }
+
+    #body {
+        min-height: 500px;
+    }
+
+    #timeline {
+        height: 150px;
+    }
+
+    #chat-history {
+        height: 150px;
+    }
+
+    #container {
+        height: 100%;
+        border-collapse: collapse;
+        display: table;
+    }
+
+    #messenger {
+        display: table-row;
+        vertical-align: bottom;
+        height: 1px;
+    }
+
+    #game-board td {
+        width: 50px;
+        height: 50px;
+        border: 1px solid #ccc;
+    }
+
+    #game-board td.unoccupied:hover {
+        background-color: #ffc520 !important;
+        cursor: pointer;
+    }
+
+</style>
+</body>
+</html>
