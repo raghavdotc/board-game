@@ -20,7 +20,7 @@ var colorOptions = [
 app.get('/', function (req, res) {
     var express = require('express');
     app.use(express.static(path.join(__dirname)));
-    res.sendFile(path.join(__dirname, '../express-proj', 'game.html'));
+    res.sendFile(path.join(__dirname, '../board-game', 'game.html'));
 });
 
 var config = {
