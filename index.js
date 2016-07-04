@@ -33,7 +33,8 @@ var gameState = {
     cells: {},
     players: {},
     config: {},
-    colors: {}
+    colors: {},
+    started: false
 };
 gameOn = false;
 io.on('connection', function (socket) {
@@ -47,15 +48,37 @@ io.on('connection', function (socket) {
             gameState.colors[encodeURI(from)] = gameState.colors[encodeURI(from)] = colorOptions[randomIndex];
             colorOptions.splice(randomIndex, 1);
         }
+        var count = 0;
+        for (var player in gameState.players) {
+            count++;
+            if (count > 1) {
+                gameState.started = true;
+            }
+        }
+        if (count < 2) {
+            gameState.started = false;
+        }
+
         io.emit('joinGame', from);
         io.emit('updateGameState', gameState);
     });
+
+
     socket.on('selectColor', function (user, x, y, color) {
         io.emit('selectColor', user, x, y, color);
     });
+
+
     socket.on('blockBoard', function () {
         io.emit('blockBoard');
     });
+
+
+    socket.on('updateGameState', function (gameState) {
+        io.emit('updateGameState', gameState);
+    });
+
+
     socket.on('removePlayer', function (player) {
         if (gameState.players[encodeURI(player)] != undefined) {
             delete gameState.players[encodeURI(player)];
@@ -65,9 +88,8 @@ io.on('connection', function (socket) {
             console.log(player + " left the game! " + Object.keys(gameState.players).length + " player(s) is(are) still playing the game!");
         }
     });
-    socket.on('updateGameState', function (gameState) {
-        io.emit('updateGameState', gameState);
-    });
+
+
     io.emit('updateGameState', gameState);
 });
 

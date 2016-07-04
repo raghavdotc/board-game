@@ -3,7 +3,7 @@
  */
 
 var socket = io();
-
+var gameStarted = false;
 var username = null;
 var gameStateData = {};
 function joinGame() {
@@ -11,7 +11,13 @@ function joinGame() {
     if (username == '') {
         alert("Username is mandatory");
     } else {
-        if (gameStateData.players[encodeURI(username)] == undefined) {
+        var count = 0;
+        for (var player in gameStateData.players) {
+            count++;
+        }
+        if (count > gameStateData.config.maxNumberOfPlayers) {
+            alert("Maximum allowed players reached!");
+        } else if (gameStateData.players[encodeURI(username)] == undefined) {
             $("#joiner").hide();
             $("#waiter").show();
             socket.emit('updateGameState', gameStateData);
@@ -63,6 +69,7 @@ socket.on('updateGameState', function (gameState) {
     if (count > 1) {
         $("#waiter").hide();
         $("#joined").show();
+        gameStarted = true;
     }
     updateGameBoard(gameStateData);
 });
@@ -81,7 +88,7 @@ function updateGameBoard(gameState) {
         gameHtml += "</tr>";
     }
     $("#game-board table").html(gameHtml);
-    if ($(".unoccupied").length < 1) {
+    if (gameStarted == true && $(".unoccupied").length < 1) {
         var maxScore = 0;
         var winner = null;
         for (var player in gameState.players) {
