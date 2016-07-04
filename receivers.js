@@ -8,7 +8,7 @@ socket.on('playerSessions', function (sessions) {
     playerSessions = sessions;
     var scoreHtml = "";
     for (var playerKey in playerSessions.sessions) {
-        scoreHtml += "<li><b>" + playerKey + "</b> : playerSessions.sessions[playerKey].cellsCount</li>";
+        scoreHtml += "<li><b>" + playerKey + "</b> : " + playerSessions.sessions[playerKey].cellsCount + "</li>";
     }
     $("#scoreboard").html(scoreHtml);
     if (playerSessions.sessions[encodeURI(username)] != undefined) {
